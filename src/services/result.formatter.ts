@@ -1,41 +1,52 @@
-type Insight = {
-  type: "inactive" | "duplicate" | "overpaying";
-  vendor: string;
-  reason: string;
-  confidence: "high" | "medium" | "low";
-  estimatedSavings: number;
-};
+import {
+  Insight,
+  InsightType,
+  Confidence,
+  FormattedResult,
+  FormattedVendor,
+} from "../models/types";
 
-type VendorAccumulator = {
+// internal only — DO NOT export
+type VendorAggregation = {
   vendor: string;
-  issues: Set<string>;
-  confidence: "high" | "medium" | "low";
+  issues: Set<InsightType>;
+  confidence: Confidence;
 
   inactiveSavings: number;
   duplicateSavings: number;
   overpayingSavings: number;
 };
 
-type FormattedVendor = {
-  vendor: string;
-  issues: string[];
-  potentialSavings: number;
-  confidence: "high" | "medium" | "low";
-};
+// type-safe priority
+const CONFIDENCE_PRIORITY = {
+  high: 3,
+  medium: 2,
+  low: 1,
+} as const;
 
-type FormattedResult = {
-  vendors: FormattedVendor[];
-  totalSavings: number;
-};
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
+// action mapping (product layer)
+function getRecommendedAction(issues: Set<InsightType>): string {
+  if (issues.has("duplicate")) {
+    return "Cancel duplicate subscriptions and keep one active plan";
+  }
+
+  if (issues.has("inactive")) {
+    return "Cancel unused subscription";
+  }
+
+  if (issues.has("overpaying")) {
+    return "Reduce seats or review actual usage";
+  }
+
+  return "No action required";
+}
 
 export function formatInsights(insights: Insight[]): FormattedResult {
-  const vendorMap: Record<string, VendorAccumulator> = {};
-
-  const priority: Record<string, number> = {
-    high: 3,
-    medium: 2,
-    low: 1,
-  };
+  const vendorMap: Record<string, VendorAggregation> = {};
 
   // ----------- Aggregate raw signals -----------
   for (const insight of insights) {
@@ -56,13 +67,12 @@ export function formatInsights(insights: Insight[]): FormattedResult {
 
     entry.issues.add(insight.type);
 
-    // Track savings separately (CRITICAL)
+    // separate buckets (critical)
     if (insight.type === "inactive") {
       entry.inactiveSavings += insight.estimatedSavings;
     }
 
     if (insight.type === "duplicate") {
-      // take max once (engine already computed full duplicate savings)
       entry.duplicateSavings = Math.max(
         entry.duplicateSavings,
         insight.estimatedSavings
@@ -76,13 +86,16 @@ export function formatInsights(insights: Insight[]): FormattedResult {
       );
     }
 
-    // Confidence resolution (highest wins)
-    if (priority[insight.confidence] > priority[entry.confidence]) {
+    // confidence resolution
+    if (
+      CONFIDENCE_PRIORITY[insight.confidence] >
+      CONFIDENCE_PRIORITY[entry.confidence]
+    ) {
       entry.confidence = insight.confidence;
     }
   }
 
-  // ----------- Resolve final vendor output -----------
+  // ----------- Final vendor-level resolution -----------
   const vendors: FormattedVendor[] = [];
 
   for (const key in vendorMap) {
@@ -90,25 +103,26 @@ export function formatInsights(insights: Insight[]): FormattedResult {
 
     let potentialSavings = 0;
 
-    // RULE: duplicate overrides inactive (prevents double counting)
+    // duplicate overrides inactive (prevents double counting)
     if (v.duplicateSavings > 0) {
       potentialSavings = v.duplicateSavings;
     } else {
-      potentialSavings = v.inactiveSavings + v.overpayingSavings;
+      potentialSavings =
+        v.inactiveSavings + v.overpayingSavings;
     }
 
     vendors.push({
       vendor: v.vendor,
-      issues: Array.from(v.issues),
-      potentialSavings,
+      issues: Array.from(v.issues), // now type-safe
+      potentialSavings: round2(potentialSavings),
       confidence: v.confidence,
+      recommendedAction: getRecommendedAction(v.issues),
     });
   }
 
-  // ----------- Total savings -----------
-  const totalSavings = vendors.reduce(
+  const totalSavings = round2(vendors.reduce(
     (sum, v) => sum + v.potentialSavings,
-    0
+    0)
   );
 
   return {
