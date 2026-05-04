@@ -45,12 +45,19 @@ function getRecommendedAction(issues: Set<InsightType>): string {
   return "No action required";
 }
 
+function normalizeVendor(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/\b(inc|llc|ltd|technologies)\b/g, "")
+    .trim();
+}
+
 export function formatInsights(insights: Insight[]): FormattedResult {
   const vendorMap: Record<string, VendorAggregation> = {};
 
   // ----------- Aggregate raw signals -----------
   for (const insight of insights) {
-    const key = insight.vendor.toLowerCase();
+    const key = normalizeVendor(insight.vendor);
 
     if (!vendorMap[key]) {
       vendorMap[key] = {
