@@ -18,7 +18,7 @@ export function evaluateDataQuality({
 
   // skipped rows penalty
   if (skipped > 0) {
-    score -= skipped * 5;
+    score -= skipped * 10
 
     issues.push(`${skipped} rows failed validation`);
   }
@@ -29,10 +29,12 @@ export function evaluateDataQuality({
   ).length;
 
   if (missingUsageCount > 0) {
-    score -= missingUsageCount * 3;
+    score -= missingUsageCount * 5
 
     issues.push(
-      `${missingUsageCount} vendors missing usage data`
+      `${missingUsageCount}  ${
+        missingUsageCount === 1 ? "vendor" : "vendors"
+    } missing usage data`
     );
   }
 
