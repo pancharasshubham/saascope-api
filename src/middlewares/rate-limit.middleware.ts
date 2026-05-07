@@ -9,7 +9,7 @@ export const uploadRateLimiter = rateLimit({
 
   legacyHeaders: false,
 
-  skipSuccessfulRequests: false,
+  skipSuccessfulRequests: false, //count all requests, even successful ones
 
   message: {
     error:
