@@ -36,5 +36,14 @@ export async function getReportById(id: string) {
     [id]
   );
 
-  return res.rows[0] || null;
+  const report = res.rows[0];
+
+  if (!report) {
+    return null;
+  }
+
+  return {
+    ...report,
+    total_savings: Number(report.total_savings),
+};
 }
