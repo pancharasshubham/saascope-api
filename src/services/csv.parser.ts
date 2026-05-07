@@ -1,76 +1,154 @@
 import fs from "fs";
 import { parse } from "csv-parse";
 
-type SaaSRecord = {
-  vendorName: string;
-  cost: number;
-  seats: number;
-  billingCycle: "monthly" | "annual";
-  lastUsedDate?: string;
+import { SaaSRecord } from "../models/types";
+import { REQUIRED_HEADERS } from "../constants/csv";
+import { validateHeaders } from "../utils/validateHeaders";
+
+type ParseError = {
+  row: number;
+  reason: string;
 };
 
 type ParseResult = {
   valid: SaaSRecord[];
-  errors: { row: number; reason: string }[];
+  errors: ParseError[];
 };
 
-export const parseCSV = (filePath: string): Promise<ParseResult> => {
+export async function parseCSV(
+  filePath: string
+): Promise<ParseResult> {
   return new Promise((resolve, reject) => {
     const valid: SaaSRecord[] = [];
-    const errors: { row: number; reason: string }[] = [];
+    const errors: ParseError[] = [];
 
     let rowNumber = 1;
+    let headersValidated = false;
 
-    fs.createReadStream(filePath)
-      .pipe(parse({ columns: true, trim: true }))
-      .on("data", (row) => {
+    const parser = parse({
+      columns: true,
+      trim: true,
+      skip_empty_lines: true,
+    });
+
+    parser.on("readable", () => {
+      let record;
+
+      while ((record = parser.read()) !== null) {
         rowNumber++;
 
-        const validation = validateRow(row);
+        // ---------- Header Validation ----------
+        if (!headersValidated) {
+          const headers = Object.keys(record);
 
-        if (validation.valid) {
-          valid.push(validation.record!);
-        } else {
-          errors.push({ row: rowNumber, reason: validation.reason! });
+          const validation = validateHeaders(
+            headers,
+            REQUIRED_HEADERS
+          );
+
+          if (!validation.valid) {
+            reject({
+              type: "INVALID_HEADERS",
+              missing: validation.missing,
+            });
+
+            return;
+          }
+
+          headersValidated = true;
         }
-      })
-      .on("end", () => {
-        resolve({ valid, errors });
-      })
-      .on("error", reject);
+
+        // ---------- Row Parsing ----------
+        const vendorName = record.vendorName?.trim();
+
+        const cost = Number(record.cost);
+
+        const seats = Number(record.seats);
+
+        const billingCycle =
+          record.billingCycle?.trim();
+
+        const lastUsedDate =
+          record.lastUsedDate?.trim() || undefined;
+
+        // ---------- Validation ----------
+        if (!vendorName) {
+          errors.push({
+            row: rowNumber,
+            reason: "missing vendorName",
+          });
+
+          continue;
+        }
+
+        if (Number.isNaN(cost) || cost < 0) {
+          errors.push({
+            row: rowNumber,
+            reason: "invalid cost",
+          });
+
+          continue;
+        }
+
+        if (
+          Number.isNaN(seats) ||
+          !Number.isInteger(seats) ||
+          seats < 1
+        ) {
+          errors.push({
+            row: rowNumber,
+            reason: "invalid seats",
+          });
+
+          continue;
+        }
+
+        if (
+          billingCycle !== "monthly" &&
+          billingCycle !== "annual"
+        ) {
+          errors.push({
+            row: rowNumber,
+            reason: "invalid billingCycle",
+          });
+
+          continue;
+        }
+
+        if (
+          lastUsedDate &&
+          Number.isNaN(Date.parse(lastUsedDate))
+        ) {
+          errors.push({
+            row: rowNumber,
+            reason: "invalid lastUsedDate",
+          });
+
+          continue;
+        }
+
+        // ---------- Valid Record ----------
+        valid.push({
+          vendorName,
+          cost,
+          seats,
+          billingCycle,
+          lastUsedDate,
+        });
+      }
+    });
+
+    parser.on("error", (err) => {
+      reject(err);
+    });
+
+    parser.on("end", () => {
+      resolve({
+        valid,
+        errors,
+      });
+    });
+
+    fs.createReadStream(filePath).pipe(parser);
   });
-};
-
-function validateRow(row: any): {
-  valid: boolean;
-  record?: SaaSRecord;
-  reason?: string;
-} {
-  const vendorName = row.vendorName?.trim();
-  const cost = Number(row.cost);
-  const seats = Number(row.seats);
-  const billingCycle = row.billingCycle?.toLowerCase();
-  const lastUsedDate = row.lastUsedDate;
-
-  if (!vendorName) return { valid: false, reason: "missing vendorName" };
-  if (isNaN(cost) || cost <= 0)
-    return { valid: false, reason: "invalid cost" };
-  if (!Number.isInteger(seats) || seats < 1)
-    return { valid: false, reason: "invalid seats" };
-  if (!["monthly", "annual"].includes(billingCycle))
-    return { valid: false, reason: "invalid billingCycle" };
-
-  if (lastUsedDate && isNaN(Date.parse(lastUsedDate)))
-    return { valid: false, reason: "invalid lastUsedDate" };
-
-  return {
-    valid: true,
-    record: {
-      vendorName,
-      cost,
-      seats,
-      billingCycle,
-      lastUsedDate,
-    },
-  };
 }

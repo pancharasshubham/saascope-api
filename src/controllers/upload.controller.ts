@@ -90,7 +90,14 @@ export const handleUpload = async (
       vendors: formatted.vendors,
       totalSavings: formatted.totalSavings,
     });
-  } catch (err) {
+  }  catch (err: any) {
+
+      if (err?.type === "INVALID_HEADERS") {
+        return res.status(400).json({
+          error: "Invalid CSV headers",
+          missing: err.missing,
+        });
+      }
     console.error("Upload processing error:", err);
 
     return res.status(500).json({
