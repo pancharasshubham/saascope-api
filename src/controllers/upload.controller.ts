@@ -5,6 +5,7 @@ import { parseCSV } from "../services/csv.parser";
 import { runInsightEngine } from "../services/insight.engine";
 import { formatInsights } from "../services/result.formatter";
 import { saveReport } from "../services/report.service";
+import { evaluateDataQuality } from "../services/data-quality.service";
 
 type MulterRequest = Request & {
   file?: Express.Multer.File;
@@ -80,15 +81,24 @@ export const handleUpload = async (
       });
     }
 
+    const dataQuality = evaluateDataQuality({
+    processed: result.valid.length,
+    skipped: result.errors.length,
+    validRecords: result.valid,
+    });
+
     // 8. Final response
     return res.json({
       reportId,
+
       processed: result.valid.length,
       skipped: result.errors.length,
       errors: result.errors,
 
       vendors: formatted.vendors,
       totalSavings: formatted.totalSavings,
+      
+      dataQuality,
     });
   }  catch (err: any) {
 

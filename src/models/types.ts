@@ -37,3 +37,8 @@ export type FormattedResult = {
   totalSavings: number;
 };
 
+export type DataQuality = {
+  score: number;
+  level: "high" | "medium" | "low";
+  issues: string[];
+};  
