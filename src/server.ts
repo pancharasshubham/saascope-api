@@ -4,6 +4,7 @@ dotenv.config();
 
 import uploadRoute from "./routes/upload.route";
 import reportRoute from "./routes/report.route";
+import { errorHandler } from "./middlewares/error.middleware";
 import pool from "./config/db";
 
 const app = express();
@@ -36,6 +37,8 @@ app.get("/test-db", async (req, res) => {
     });
   }
 });
+
+app.use(errorHandler);
 
 // start server
 app.listen(PORT, () => {
