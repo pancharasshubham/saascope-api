@@ -1,55 +1,114 @@
 import express from "express";
 import dotenv from "dotenv";
-dotenv.config();  
+
+dotenv.config();
+
+import pinoHttp from "pino-http";
+
+import { logger } from "./utils/logger";
 
 import { requestIdMiddleware } from "./middlewares/request-id.middleware";
+import { errorHandler } from "./middlewares/error.middleware";
 
 import uploadRoute from "./routes/upload.route";
 import reportRoute from "./routes/report.route";
-import { errorHandler } from "./middlewares/error.middleware";
-import pool from "./config/db";
 
-import pinoHttp from "pino-http";
-import { logger } from "./utils/logger";
+import pool from "./config/db";
 
 const app = express();
 
-app.use(pinoHttp({ logger,}));
+const PORT = process.env.PORT || 3000;
 
+// ---------- Core Middleware ----------
+
+// structured request logging
+app.use(
+  pinoHttp({
+    logger,
+  })
+);
+
+// request correlation ids
 app.use(requestIdMiddleware);
+
+// json parser
+app.use(express.json());
+
+// ---------- Health Check ----------
+
+app.get("/", (req, res) => {
+
+  logger.info(
+    {
+      requestId: req.requestId,
+    },
+    "Health check route accessed"
+  );
+
+  res.json({
+    message: "SaaScope API is running",
+  });
+});
+
+// ---------- TEMP DB TEST ROUTE ----------
+
+app.get("/test-db", async (req, res) => {
+
+  try {
+
+    const result = await pool.query(
+      "SELECT NOW()"
+    );
+
+    logger.info(
+      {
+        requestId: req.requestId,
+      },
+      "Database connectivity test successful"
+    );
+
+    res.json(result.rows);
+
+  } catch (err: unknown) {
+
+    logger.error(
+      {
+        requestId: req.requestId,
+        err,
+      },
+      "Database connectivity test failed"
+    );
+
+    res.status(500).json({
+      error:
+        err instanceof Error
+          ? err.message
+          : "Unknown DB error",
+    });
+  }
+});
+
+// ---------- Routes ----------
 
 app.use("/upload", uploadRoute);
 
 app.use("/reports", reportRoute);
 
-const PORT = process.env.PORT || 3000;
-
-// middleware
-app.use(express.json());
-
-// health check route
-app.get("/", (req, res) => {
-  res.json({ message: "SaaScope API is running" });
-});
-
-// TEMP DB TEST ROUTE
-app.get("/test-db", async (req, res) => {
-  try {
-    const result = await pool.query("SELECT NOW()");
-
-    res.json(result.rows);
-  } catch (err) {
-    console.error("DB Error:", err);
-
-    res.status(500).json({
-      error: err instanceof Error ? err.message : "Unknown DB error",
-    });
-  }
-});
+// ---------- Global Error Handler ----------
 
 app.use(errorHandler);
 
-// start server
+// ---------- Server Startup ----------
+
 app.listen(PORT, () => {
-  logger.info(`Server running on port ${PORT}`);
+
+  logger.info(
+    {
+      port: PORT,
+      environment:
+        process.env.NODE_ENV || "development",
+    },
+    "Server started successfully"
+  );
+
 });
