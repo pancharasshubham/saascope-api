@@ -140,6 +140,10 @@ export function formatInsights(insights: Insight[]): FormattedResult {
         v.inactiveSavings + v.overpayingSavings;
     }
 
+    if (potentialSavings <= 0) {
+    continue;
+    }
+
     vendors.push({
       vendor: v.vendor,
       issues: Array.from(v.issues), // now type-safe
