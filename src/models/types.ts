@@ -29,9 +29,11 @@ export type FormattedVendor = {
   potentialSavings: number;
   confidence: Confidence;
   recommendedAction: string;
+   explanation: string
 };
 
 export type FormattedResult = {
   vendors: FormattedVendor[];
   totalSavings: number;
 };
+

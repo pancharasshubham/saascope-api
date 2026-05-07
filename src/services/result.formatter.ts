@@ -52,6 +52,28 @@ function normalizeVendor(name: string): string {
     .trim();
 }
 
+// explanation builder (for future use in UI or reports)
+function buildExplanation(
+  issues: Set<InsightType>,
+  savings: number,
+  confidence: Confidence
+): string {
+  if (issues.has("duplicate")) {
+    return `Duplicate subscriptions detected. Estimated savings: ₹${savings}. Confidence: ${confidence}.`;
+  }
+
+  if (issues.has("inactive")) {
+    return `No recent usage detected. Estimated savings: ₹${savings}. Confidence: ${confidence}.`;
+  }
+
+  if (issues.has("overpaying")) {
+    return `Multiple paid seats detected without usage visibility. Estimated savings: ₹${savings}. Confidence: ${confidence}.`;
+  }
+
+  return "No optimization opportunities detected.";
+}
+
+
 export function formatInsights(insights: Insight[]): FormattedResult {
   const vendorMap: Record<string, VendorAggregation> = {};
 
@@ -124,6 +146,11 @@ export function formatInsights(insights: Insight[]): FormattedResult {
       potentialSavings: round2(potentialSavings),
       confidence: v.confidence,
       recommendedAction: getRecommendedAction(v.issues),
+      explanation: buildExplanation(
+       v.issues,
+       round2(potentialSavings),
+       v.confidence
+    ),
     });
   }
 
