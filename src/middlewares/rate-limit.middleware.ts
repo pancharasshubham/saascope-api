@@ -1,20 +1,19 @@
 import rateLimit from "express-rate-limit";
 
 export const uploadRateLimiter = rateLimit({
-  windowMs:  60 * 1000,
+  windowMs: 15 * 60 * 1000, // 15 minutes
 
-  max: 3,
+  max: 20, // limit each IP to 20 requests per windowMs
 
-  standardHeaders: true,
+  standardHeaders: true, 
 
   legacyHeaders: false,
 
- handler: (req, res) => {
-    console.log("RATE LIMIT HIT");
+  skipSuccessfulRequests: false,
 
-    res.status(429).json({
-      error:
-        "Too many upload requests. Please try again later.",
-    });
+  message: {
+    error:
+      "Too many upload requests. Please try again later.",
+    retryAfter: "15 minutes",
   },
 });
