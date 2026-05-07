@@ -1,6 +1,8 @@
 import express from "express";
 import dotenv from "dotenv";
-dotenv.config();
+dotenv.config();  
+
+import { requestIdMiddleware } from "./middlewares/request-id.middleware";
 
 import uploadRoute from "./routes/upload.route";
 import reportRoute from "./routes/report.route";
@@ -13,6 +15,8 @@ import { logger } from "./utils/logger";
 const app = express();
 
 app.use(pinoHttp({ logger,}));
+
+app.use(requestIdMiddleware);
 
 app.use("/upload", uploadRoute);
 

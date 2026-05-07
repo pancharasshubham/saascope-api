@@ -6,6 +6,7 @@ import { runInsightEngine } from "../services/insight.engine";
 import { formatInsights } from "../services/result.formatter";
 import { saveReport } from "../services/report.service";
 import { evaluateDataQuality } from "../services/data-quality.service";
+
 import { logger } from "../utils/logger";
 
 type MulterRequest = Request & {
@@ -17,24 +18,46 @@ export const handleUpload = async (
   res: Response
 ) => {
   try {
-    // 1. Validate file
+    // ---------- File validation ----------
     if (!req.file) {
+      logger.warn(
+        {
+          requestId: req.requestId,
+        },
+        "Upload attempted without file"
+      );
+
       return res.status(400).json({
         error: "No file uploaded",
       });
     }
 
-    // 2. Parse CSV
+    logger.info(
+      {
+        requestId: req.requestId,
+        fileName: req.file.originalname,
+      },
+      "CSV upload started"
+    );
+
+    // ---------- Parse CSV ----------
     const result = await parseCSV(req.file.path);
 
-    // 3. Cleanup temp file
+    // ---------- Cleanup temp file ----------
     fs.unlink(req.file.path, (err) => {
       if (err) {
-        console.error(err, "File cleanup failed:");
+        logger.error(
+          {
+            requestId: req.requestId,
+            err,
+            path: req.file?.path,
+          },
+          "Failed to cleanup uploaded temp file"
+        );
       }
     });
 
-    // 4. Run insight engine
+    // ---------- Insight config ----------
     const config = {
       inactiveThresholdDays:
         Number(process.env.INACTIVE_THRESHOLD_DAYS) || 90,
@@ -43,15 +66,23 @@ export const handleUpload = async (
         Number(process.env.DUPLICATE_COST_MINIMUM) || 1,
     };
 
+    // ---------- Generate insights ----------
     const rawInsights = runInsightEngine(
       result.valid,
       config
     );
 
-    // 5. Format insights
+    // ---------- Format insights ----------
     const formatted = formatInsights(rawInsights);
 
-    // 6. Save report
+    // ---------- Evaluate dataset quality ----------
+    const dataQuality = evaluateDataQuality({
+      processed: result.valid.length,
+      skipped: result.errors.length,
+      validRecords: result.valid,
+    });
+
+    // ---------- Persist report ----------
     const reportId = await saveReport({
       fileName: req.file.originalname,
       processedCount: result.valid.length,
@@ -61,10 +92,30 @@ export const handleUpload = async (
       totalSavings: formatted.totalSavings,
     });
 
-    // 7. Empty state
+    // ---------- Validation warnings ----------
+    if (result.errors.length > 0) {
+      logger.warn(
+        {
+          requestId: req.requestId,
+          skipped: result.errors.length,
+        },
+        "CSV rows skipped during validation"
+      );
+    }
+
+    // ---------- Empty state ----------
     if (formatted.vendors.length === 0) {
+      logger.info(
+        {
+          requestId: req.requestId,
+          reportId,
+        },
+        "Upload completed with no optimization opportunities"
+      );
+
       return res.json({
         reportId,
+
         processed: result.valid.length,
         skipped: result.errors.length,
         errors: result.errors,
@@ -72,6 +123,8 @@ export const handleUpload = async (
         vendors: [],
 
         totalSavings: 0,
+
+        dataQuality,
 
         summary: {
           totalRecords: result.valid.length,
@@ -82,13 +135,19 @@ export const handleUpload = async (
       });
     }
 
-    const dataQuality = evaluateDataQuality({
-    processed: result.valid.length,
-    skipped: result.errors.length,
-    validRecords: result.valid,
-    });
+    // ---------- Success ----------
+    logger.info(
+      {
+        requestId: req.requestId,
+        reportId,
+        processed: result.valid.length,
+        insightsFound: formatted.vendors.length,
+        totalSavings: formatted.totalSavings,
+      },
+      "CSV upload processed successfully"
+    );
 
-    // 8. Final response
+    // ---------- Final response ----------
     return res.json({
       reportId,
 
@@ -101,15 +160,36 @@ export const handleUpload = async (
 
       dataQuality,
     });
-  }  catch (err: any) {
 
-      if (err?.type === "INVALID_HEADERS") {
-        return res.status(400).json({
-          error: "Invalid CSV headers",
-          missing: err.missing,
-        });
-      }
-    logger.error("Upload processing error:", err);
+  } catch (err: unknown) {
+
+    if (
+      typeof err === "object" &&
+      err !== null &&
+      "type" in err &&
+      err.type === "INVALID_HEADERS"
+    ) {
+      logger.warn(
+        {
+          requestId: req.requestId,
+          err,
+        },
+        "CSV upload rejected due to invalid headers"
+      );
+
+      return res.status(400).json({
+        error: "Invalid CSV headers",
+        missing: (err as any).missing,
+      });
+    }
+
+    logger.error(
+      {
+        requestId: req.requestId,
+        err,
+      },
+      "Upload processing failed"
+    );
 
     return res.status(500).json({
       error: "Failed to process CSV",
