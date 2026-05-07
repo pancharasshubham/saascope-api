@@ -6,6 +6,7 @@ import { runInsightEngine } from "../services/insight.engine";
 import { formatInsights } from "../services/result.formatter";
 import { saveReport } from "../services/report.service";
 import { evaluateDataQuality } from "../services/data-quality.service";
+import { logger } from "../utils/logger";
 
 type MulterRequest = Request & {
   file?: Express.Multer.File;
@@ -29,7 +30,7 @@ export const handleUpload = async (
     // 3. Cleanup temp file
     fs.unlink(req.file.path, (err) => {
       if (err) {
-        console.error("File cleanup failed:", err);
+        console.error(err, "File cleanup failed:");
       }
     });
 
@@ -97,7 +98,7 @@ export const handleUpload = async (
 
       vendors: formatted.vendors,
       totalSavings: formatted.totalSavings,
-      
+
       dataQuality,
     });
   }  catch (err: any) {
@@ -108,7 +109,7 @@ export const handleUpload = async (
           missing: err.missing,
         });
       }
-    console.error("Upload processing error:", err);
+    logger.error("Upload processing error:", err);
 
     return res.status(500).json({
       error: "Failed to process CSV",

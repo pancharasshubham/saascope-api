@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { getReportById } from "../services/report.service";
+import { logger } from "../utils/logger";
 
 export const getReport = async (req: Request, res: Response) => {
   try {
@@ -19,8 +20,8 @@ export const getReport = async (req: Request, res: Response) => {
     }
 
     return res.json(report);
-  } catch (err) {
-    console.error("Get report error:", err);
+  } catch (err: unknown) {
+    logger.error(err, "Get report error:");
     return res.status(500).json({ error: "Failed to fetch report" });
   }
 };

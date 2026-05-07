@@ -7,7 +7,12 @@ import reportRoute from "./routes/report.route";
 import { errorHandler } from "./middlewares/error.middleware";
 import pool from "./config/db";
 
+import pinoHttp from "pino-http";
+import { logger } from "./utils/logger";
+
 const app = express();
+
+app.use(pinoHttp({ logger,}));
 
 app.use("/upload", uploadRoute);
 
@@ -42,5 +47,5 @@ app.use(errorHandler);
 
 // start server
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  logger.info(`Server running on port ${PORT}`);
 });
