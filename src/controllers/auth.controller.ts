@@ -2,6 +2,11 @@ import { Request, Response } from "express";
 
 import { registerUser } from "../services/auth.service";
 
+import { loginUser } from "../services/auth.service";
+
+import { generateToken }
+from "../services/token.service";
+
 import { logger } from "../utils/logger";
 
 export async function register(
@@ -78,6 +83,82 @@ export async function register(
 
     return res.status(500).json({
       error: "Failed to register user",
+    });
+  }
+}
+
+export async function login(
+  req: Request,
+  res: Response
+) {
+  try {
+
+    const { email, password } = req.body;
+
+    // ---------- Validation ----------
+    if (!email || !password) {
+      return res.status(400).json({
+        error: "Email and password are required",
+      });
+    }
+
+    // ---------- Login ----------
+    const user = await loginUser(
+      email,
+      password
+    );
+
+    // ---------- Generate token ----------
+    const token = generateToken({
+      userId: user.id,
+    });
+
+    logger.info(
+      {
+        requestId: req.requestId,
+        userId: user.id,
+      },
+      "User logged in successfully"
+    );
+
+    return res.json({
+      token,
+
+      user: {
+        id: user.id,
+        email: user.email,
+      },
+    });
+
+  } catch (err: unknown) {
+
+    if (
+      err instanceof Error &&
+      err.message === "INVALID_CREDENTIALS"
+    ) {
+
+      logger.warn(
+        {
+          requestId: req.requestId,
+        },
+        "Invalid login attempt"
+      );
+
+      return res.status(401).json({
+        error: "Invalid credentials",
+      });
+    }
+
+    logger.error(
+      {
+        requestId: req.requestId,
+        err,
+      },
+      "User login failed"
+    );
+
+    return res.status(500).json({
+      error: "Failed to login user",
     });
   }
 }

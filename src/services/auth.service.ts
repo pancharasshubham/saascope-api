@@ -48,3 +48,44 @@ export async function registerUser(
 
   return result.rows[0];
 }
+
+export async function loginUser(
+  email: string,
+  password: string
+) {
+
+  const normalizedEmail =
+    email.trim().toLowerCase();
+
+  // ---------- Find user ----------
+  const result = await pool.query(
+    `
+    SELECT id, email, password_hash
+    FROM users
+    WHERE email = $1
+    `,
+    [normalizedEmail]
+  );
+
+  if (result.rows.length === 0) {
+    throw new Error("INVALID_CREDENTIALS");
+  }
+
+  const user = result.rows[0];
+
+  // ---------- Verify password ----------
+  const passwordMatch =
+    await bcrypt.compare(
+      password,
+      user.password_hash
+    );
+
+  if (!passwordMatch) {
+    throw new Error("INVALID_CREDENTIALS");
+  }
+
+  return {
+    id: user.id,
+    email: user.email,
+  };
+}
