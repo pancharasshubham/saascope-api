@@ -13,7 +13,7 @@ export const getReport = async (req: Request, res: Response) => {
       });
     }
 
-    const report = await getReportById(id);
+    const report = await getReportById(id, req.user!.userId);
 
     if (!report) {
       return res.status(404).json({ error: "Report not found" });

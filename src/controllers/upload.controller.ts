@@ -84,6 +84,7 @@ export const handleUpload = async (
 
     // ---------- Persist report ----------
     const reportId = await saveReport({
+      userId: req.user!.userId,
       fileName: req.file.originalname,
       processedCount: result.valid.length,
       skippedCount: result.errors.length,
