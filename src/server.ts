@@ -104,6 +104,23 @@ app.use("/reports", reportRoute);
 
 app.use("/auth", authRoute);
 
+// temporary protected route to demonstrate auth middleware
+
+import { authenticate } from "./middlewares/auth.middleware";
+app.get(
+  "/protected",
+  authenticate,
+  (req, res) => {
+
+    return res.json({
+      message:
+        "Protected route accessed",
+
+      user: req.user,
+    });
+  }
+);
+
 // ---------- Global Error Handler ----------
 
 app.use(errorHandler);
