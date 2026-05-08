@@ -7,6 +7,8 @@ import pinoHttp from "pino-http";
 
 import { logger } from "./utils/logger";
 
+import authRoute from "./routes/auth.route";
+
 import { requestIdMiddleware } from "./middlewares/request-id.middleware";
 import { errorHandler } from "./middlewares/error.middleware";
 
@@ -99,6 +101,8 @@ app.get("/test-db", async (req, res) => {
 app.use("/upload", uploadRoute);
 
 app.use("/reports", reportRoute);
+
+app.use("/auth", authRoute);
 
 // ---------- Global Error Handler ----------
 
