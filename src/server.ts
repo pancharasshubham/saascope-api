@@ -21,15 +21,21 @@ const PORT = process.env.PORT || 3000;
 
 // ---------- Core Middleware ----------
 
+// request correlation ids
+app.use(requestIdMiddleware);
+
 // structured request logging
 app.use(
   pinoHttp({
     logger,
+
+    customProps: (req) => ({
+    requestId: req.requestId,
+    }),
+
+    genReqId: (req) => req.requestId,
   })
 );
-
-// request correlation ids
-app.use(requestIdMiddleware);
 
 // json parser
 app.use(express.json());
@@ -104,7 +110,7 @@ app.listen(PORT, () => {
 
   logger.info(
     {
-      port: PORT,
+      port: Number(PORT),
       environment:
         process.env.NODE_ENV || "development",
     },
