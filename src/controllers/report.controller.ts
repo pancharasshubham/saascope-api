@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { getReportById } from "../services/report.service";
+import { getReportById, getUserReports } from "../services/report.service";
 import { logger } from "../utils/logger";
 
 export const getReport = async (req: Request, res: Response) => {
@@ -25,3 +25,44 @@ export const getReport = async (req: Request, res: Response) => {
     return res.status(500).json({ error: "Failed to fetch report" });
   }
 };
+
+export async function listReports(
+  req: Request,
+  res: Response
+) {
+
+  try {
+
+    const reports =
+      await getUserReports(
+        req.user!.userId
+      );
+
+    logger.info(
+      {
+        requestId: req.requestId,
+        userId: req.user!.userId,
+        reportsFound: reports.length,
+      },
+      "User reports retrieved successfully"
+    );
+
+    return res.json({
+      reports,
+    });
+
+  } catch (err: unknown) {
+
+    logger.error(
+      {
+        requestId: req.requestId,
+        err,
+      },
+      "Failed to retrieve user reports"
+    );
+
+    return res.status(500).json({
+      error: "Failed to retrieve reports",
+    });
+  }
+}

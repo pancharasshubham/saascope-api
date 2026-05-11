@@ -91,3 +91,30 @@ export async function getReportById(
 
   return result.rows[0] || null;
 }
+
+export async function getUserReports(
+  userId: string
+) {
+
+  const query = `
+    SELECT
+      id,
+      file_name,
+      processed_count,
+      skipped_count,
+      total_savings,
+      created_at
+    FROM reports
+    WHERE user_id = $1
+    ORDER BY created_at DESC
+  `;
+
+  const values = [userId];
+
+  const result = await pool.query(
+    query,
+    values
+  );
+
+  return result.rows;
+}
