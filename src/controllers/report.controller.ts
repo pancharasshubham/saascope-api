@@ -34,26 +34,63 @@ export async function listReports(
 
   try {
 
-    const reports =
+    // ---------- Query params ----------
+    const page = Math.max(
+      Number(req.query.page) || 1,
+      1
+    );
+
+    const limit = Math.min(
+      Math.max(
+        Number(req.query.limit) || 10,
+        1
+      ),
+      50
+    );
+
+    // ---------- Fetch reports ----------
+    const result =
       await getUserReports(
-        req.user!.userId
+        req.user!.userId,
+        page,
+        limit
+      );
+
+    const mappedReports =
+      result.reports.map(
+        mapReportSummary
+      );
+
+    const totalPages =
+      Math.ceil(
+        result.total / limit
       );
 
     logger.info(
       {
         requestId: req.requestId,
         userId: req.user!.userId,
-        reportsFound: reports.length,
+        page,
+        limit,
+        reportsFound:
+          mappedReports.length,
       },
       "User reports retrieved successfully"
     );
 
-  const mappedReports =
-  reports.map(mapReportSummary);
+    return res.json({
+      reports: mappedReports,
 
-  return res.json({
-    reports: mappedReports,
-  });
+      pagination: {
+        page,
+        limit,
+
+        total:
+          result.total,
+
+        totalPages,
+      },
+    });
 
   } catch (err: unknown) {
 
@@ -66,7 +103,8 @@ export async function listReports(
     );
 
     return res.status(500).json({
-      error: "Failed to retrieve reports",
+      error:
+        "Failed to retrieve reports",
     });
   }
 }

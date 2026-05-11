@@ -93,10 +93,16 @@ export async function getReportById(
 }
 
 export async function getUserReports(
-  userId: string
+  userId: string,
+  page: number,
+  limit: number
 ) {
 
-  const query = `
+  const offset =
+    (page - 1) * limit;
+
+  // ---------- Paginated reports ----------
+  const reportsQuery = `
     SELECT
       id,
       file_name,
@@ -107,14 +113,42 @@ export async function getUserReports(
     FROM reports
     WHERE user_id = $1
     ORDER BY created_at DESC
+    LIMIT $2
+    OFFSET $3
   `;
 
-  const values = [userId];
+  const reportsValues = [
+    userId,
+    limit,
+    offset,
+  ];
 
-  const result = await pool.query(
-    query,
-    values
-  );
+  const reportsResult =
+    await pool.query(
+      reportsQuery,
+      reportsValues
+    );
 
-  return result.rows;
+  // ---------- Total count ----------
+  const countQuery = `
+    SELECT COUNT(*) AS total
+    FROM reports
+    WHERE user_id = $1
+  `;
+
+  const countResult =
+    await pool.query(
+      countQuery,
+      [userId]
+    );
+
+  return {
+    reports:
+      reportsResult.rows,
+
+    total:
+      Number(
+        countResult.rows[0].total
+      ),
+  };
 }
