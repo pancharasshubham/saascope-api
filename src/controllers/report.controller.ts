@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { getReportById, getUserReports } from "../services/report.service";
 import { logger } from "../utils/logger";
+import { mapReportSummary } from "../mappers/report.mapper";
 
 export const getReport = async (req: Request, res: Response) => {
   try {
@@ -47,9 +48,12 @@ export async function listReports(
       "User reports retrieved successfully"
     );
 
-    return res.json({
-      reports,
-    });
+  const mappedReports =
+  reports.map(mapReportSummary);
+
+  return res.json({
+    reports: mappedReports,
+  });
 
   } catch (err: unknown) {
 
