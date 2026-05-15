@@ -48,12 +48,24 @@ export async function listReports(
       50
     );
 
+    const search =
+      typeof req.query.search === "string"
+        ? req.query.search.trim()
+        : undefined;
+
+    const minSavings =
+      req.query.minSavings
+        ? Number(req.query.minSavings)
+        : undefined;
+
     // ---------- Fetch reports ----------
     const result =
       await getUserReports(
         req.user!.userId,
         page,
-        limit
+        limit,
+        search,
+        minSavings
       );
 
     const mappedReports =

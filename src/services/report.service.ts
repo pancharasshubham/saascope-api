@@ -95,13 +95,56 @@ export async function getReportById(
 export async function getUserReports(
   userId: string,
   page: number,
-  limit: number
+  limit: number,
+  search?: string,
+  minSavings?: number
 ) {
 
   const offset =
     (page - 1) * limit;
 
-  // ---------- Paginated reports ----------
+  // ---------- Dynamic filters ----------
+  const conditions = [
+    `user_id = $1`
+  ];
+
+  const values: unknown[] = [
+    userId
+  ];
+
+  let paramIndex = 2;
+
+  // ---------- Search ----------
+  if (search) {
+
+    conditions.push(
+      `file_name ILIKE $${paramIndex}`
+    );
+
+    values.push(`%${search}%`);
+
+    paramIndex++;
+  }
+
+  // ---------- Min savings ----------
+  if (
+    typeof minSavings === "number"
+  ) {
+
+    conditions.push(
+      `total_savings >= $${paramIndex}`
+    );
+
+    values.push(minSavings);
+
+    paramIndex++;
+  }
+
+  // ---------- WHERE clause ----------
+  const whereClause =
+    conditions.join(" AND ");
+
+  // ---------- Reports query ----------
   const reportsQuery = `
     SELECT
       id,
@@ -111,35 +154,35 @@ export async function getUserReports(
       total_savings,
       created_at
     FROM reports
-    WHERE user_id = $1
+    WHERE ${whereClause}
     ORDER BY created_at DESC
-    LIMIT $2
-    OFFSET $3
+    LIMIT $${paramIndex}
+    OFFSET $${paramIndex + 1}
   `;
 
-  const reportsValues = [
-    userId,
-    limit,
-    offset,
-  ];
+  values.push(limit);
+  values.push(offset);
 
   const reportsResult =
     await pool.query(
       reportsQuery,
-      reportsValues
+      values
     );
 
-  // ---------- Total count ----------
+  // ---------- Count query ----------
   const countQuery = `
     SELECT COUNT(*) AS total
     FROM reports
-    WHERE user_id = $1
+    WHERE ${whereClause}
   `;
+
+  const countValues =
+    values.slice(0, values.length - 2);
 
   const countResult =
     await pool.query(
       countQuery,
-      [userId]
+      countValues
     );
 
   return {
