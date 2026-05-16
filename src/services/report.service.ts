@@ -18,6 +18,22 @@ type SaveReportInput = {
   status: "processing" | "completed" | "failed";
 };
 
+type UpdateReportInput = {
+  reportId: string;
+
+  processedCount: number;
+
+  skippedCount: number;
+
+  errors: unknown[];
+
+  vendors: unknown[];
+
+  totalSavings: number;
+
+  status: "completed" | "failed";
+};
+
 export async function saveReport(
   input: SaveReportInput
 ): Promise<string> {
@@ -201,4 +217,50 @@ export async function getUserReports(
         countResult.rows[0].total
       ),
   };
+}
+
+export async function updateReportResult(
+  input: UpdateReportInput
+) {
+
+  const query = `
+    UPDATE reports
+    SET
+      processed_count = $1,
+      skipped_count = $2,
+      errors = $3,
+      vendors = $4,
+      total_savings = $5,
+      status = $6
+    WHERE id = $7
+  `;
+
+  const values = [
+    input.processedCount,
+    input.skippedCount,
+    JSON.stringify(input.errors),
+    JSON.stringify(input.vendors),
+    input.totalSavings,
+    input.status,
+    input.reportId,
+  ];
+
+  await pool.query(
+    query,
+    values
+  );
+}
+
+export async function markReportFailed(
+  reportId: string
+) {
+
+  await pool.query(
+    `
+    UPDATE reports
+    SET status = 'failed'
+    WHERE id = $1
+    `,
+    [reportId]
+  );
 }
