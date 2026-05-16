@@ -1,19 +1,45 @@
 import multer from "multer";
 import path from "path";
+import fs from "fs";
+
+const uploadDir = "storage/uploads";
+
+// ---------- Ensure storage folder exists ----------
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, {
+    recursive: true,
+  });
+}
 
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "tmp/uploads");
+
+  destination: (
+    req,
+    file,
+    cb
+  ) => {
+
+    cb(null, uploadDir);
   },
-  filename: (req, file, cb) => {
-    const uniqueName = Date.now() + path.extname(file.originalname);
+
+  filename: (
+    req,
+    file,
+    cb
+  ) => {
+
+    const uniqueName =
+      `${Date.now()}-${file.originalname}`;
+
     cb(null, uniqueName);
   },
 });
 
 export const upload = multer({
   storage,
+
   limits: {
-    fileSize: 10 * 1024 * 1024,
+    fileSize:
+      10 * 1024 * 1024,
   },
 });

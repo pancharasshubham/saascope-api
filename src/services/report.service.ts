@@ -15,6 +15,8 @@ type SaveReportInput = {
 
   totalSavings: number;
 
+  filePath: string;
+
   status: "processing" | "completed" | "failed";
 };
 
@@ -47,9 +49,10 @@ export async function saveReport(
       errors,
       vendors,
       total_savings,
-      status
+      status,
+      file_path
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
     RETURNING id
   `;
 
@@ -69,6 +72,8 @@ export async function saveReport(
     input.totalSavings,
 
     input.status,
+
+    input.filePath,
   ];
 
   const result = await pool.query(

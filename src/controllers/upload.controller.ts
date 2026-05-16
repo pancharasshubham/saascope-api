@@ -68,6 +68,8 @@ export const handleUpload = async (
 
       totalSavings: 0,
 
+      filePath: req.file.path,
+
       status: "processing",
     });
 
@@ -80,22 +82,6 @@ export const handleUpload = async (
     if (process.env.TEST_FAILURE === "true") {
       throw new Error("TEST_FAILURE");
     }
-
-    // ---------- Cleanup temp file ----------
-    fs.unlink(req.file.path, (err) => {
-
-      if (err) {
-
-        logger.error(
-          {
-            requestId: req.requestId,
-            err,
-            path: req.file?.path,
-          },
-          "Failed to cleanup uploaded temp file"
-        );
-      }
-    });
 
     // ---------- Insight config ----------
     const config = {
