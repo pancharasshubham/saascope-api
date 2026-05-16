@@ -53,10 +53,24 @@ export async function listReports(
         ? req.query.search.trim()
         : undefined;
 
-    const minSavings =
-      req.query.minSavings
-        ? Number(req.query.minSavings)
-        : undefined;
+    let minSavings: number | undefined;
+
+    if (req.query.minSavings !== undefined) {
+
+      const parsed = Number(
+        req.query.minSavings
+      );
+
+      if (Number.isNaN(parsed)) {
+
+        return res.status(400).json({
+          error:
+            "minSavings must be a valid number",
+          });
+        }
+
+      minSavings = parsed;
+    }
 
     // ---------- Fetch reports ----------
     const result =
