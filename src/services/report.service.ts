@@ -14,6 +14,8 @@ type SaveReportInput = {
   vendors: unknown[];
 
   totalSavings: number;
+
+  status: "processing" | "completed" | "failed";
 };
 
 export async function saveReport(
@@ -28,9 +30,10 @@ export async function saveReport(
       skipped_count,
       errors,
       vendors,
-      total_savings
+      total_savings,
+      status
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     RETURNING id
   `;
 
@@ -48,6 +51,8 @@ export async function saveReport(
     JSON.stringify(input.vendors),
 
     input.totalSavings,
+
+    input.status,
   ];
 
   const result = await pool.query(
@@ -73,10 +78,11 @@ export async function getReportById(
       errors,
       vendors,
       total_savings,
+      status,
       created_at
-    FROM reports
-    WHERE id = $1
-    AND user_id = $2
+        FROM reports
+        WHERE id = $1
+        AND user_id = $2
   `;
 
   const values = [
@@ -152,12 +158,13 @@ export async function getUserReports(
       processed_count,
       skipped_count,
       total_savings,
+      status,
       created_at
-    FROM reports
-    WHERE ${whereClause}
-    ORDER BY created_at DESC
-    LIMIT $${paramIndex}
-    OFFSET $${paramIndex + 1}
+        FROM reports
+        WHERE ${whereClause}
+        ORDER BY created_at DESC
+        LIMIT $${paramIndex}
+        OFFSET $${paramIndex + 1}
   `;
 
   values.push(limit);

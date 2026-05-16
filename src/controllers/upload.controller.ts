@@ -91,6 +91,7 @@ export const handleUpload = async (
       errors: result.errors,
       vendors: formatted.vendors,
       totalSavings: formatted.totalSavings,
+      status: "completed",
     });
 
     // ---------- Validation warnings ----------

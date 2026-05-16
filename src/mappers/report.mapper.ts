@@ -10,6 +10,8 @@ type ReportRow = {
   total_savings: number;
 
   created_at: string;
+
+  status: string;
 };
 
 export function mapReportSummary(
@@ -32,5 +34,7 @@ export function mapReportSummary(
 
     createdAt:
       row.created_at,
+
+    status: row.status,
   };
 }
