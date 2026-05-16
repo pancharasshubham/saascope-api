@@ -99,6 +99,7 @@ export async function getReportById(
       errors,
       vendors,
       total_savings,
+      file_path,
       status,
       created_at
         FROM reports
@@ -264,6 +265,20 @@ export async function markReportFailed(
     `
     UPDATE reports
     SET status = 'failed'
+    WHERE id = $1
+    `,
+    [reportId]
+  );
+}
+
+export async function markReportProcessing(
+  reportId: string
+) {
+
+  await pool.query(
+    `
+    UPDATE reports
+    SET status = 'processing'
     WHERE id = $1
     `,
     [reportId]

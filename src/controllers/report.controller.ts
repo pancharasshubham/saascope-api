@@ -1,7 +1,10 @@
 import { Request, Response } from "express";
-import { getReportById, getUserReports } from "../services/report.service";
+import { getReportById, getUserReports, markReportProcessing, markReportFailed, updateReportResult } from "../services/report.service";
 import { logger } from "../utils/logger";
 import { mapReportSummary } from "../mappers/report.mapper";
+import { parseCSV } from "../services/csv.parser";
+import { runInsightEngine } from "../services/insight.engine";
+import { formatInsights } from "../services/result.formatter";
 
 export const getReport = async (req: Request, res: Response) => {
   try {
@@ -131,6 +134,148 @@ export async function listReports(
     return res.status(500).json({
       error:
         "Failed to retrieve reports",
+    });
+  }
+}
+
+export async function retryReport(
+  req: Request,
+  res: Response
+) {
+
+  let retryReportId: string | null = null;
+
+  try {
+
+    const reportId =
+      Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
+
+    const report =
+      await getReportById(
+        reportId,
+        req.user!.userId
+      );
+
+    if (!report) {
+
+      return res.status(404).json({
+        error: "Report not found",
+      });
+    }
+
+    if (report.status !== "failed") {
+
+      return res.status(400).json({
+        error:
+          "Only failed reports can be retried",
+      });
+    }
+
+    retryReportId = report.id;
+
+    await markReportProcessing(
+      report.id
+    );
+
+    logger.info(
+      {
+        requestId: req.requestId,
+        reportId: report.id,
+      },
+      "Report retry started"
+    );
+
+    // ---------- Parse persisted CSV ----------
+    const result =
+      await parseCSV(
+        report.file_path
+      );
+
+    // ---------- Insight config ----------
+    const config = {
+
+      inactiveThresholdDays:
+        Number(
+          process.env
+            .INACTIVE_THRESHOLD_DAYS
+        ) || 90,
+
+      duplicateCostMinimum:
+        Number(
+          process.env
+            .DUPLICATE_COST_MINIMUM
+        ) || 1,
+    };
+
+    // ---------- Generate insights ----------
+    const rawInsights =
+      runInsightEngine(
+        result.valid,
+        config
+      );
+
+    // ---------- Format insights ----------
+    const formatted =
+      formatInsights(rawInsights);
+
+    // ---------- Persist updated result ----------
+    await updateReportResult({
+      reportId: report.id,
+
+      processedCount:
+        result.valid.length,
+
+      skippedCount:
+        result.errors.length,
+
+      errors:
+        result.errors,
+
+      vendors:
+        formatted.vendors,
+
+      totalSavings:
+        formatted.totalSavings,
+
+      status: "completed",
+    });
+
+    logger.info(
+      {
+        requestId: req.requestId,
+        reportId: report.id,
+      },
+      "Report retry completed successfully"
+    );
+
+    return res.json({
+      message:
+        "Report reprocessed successfully",
+
+      reportId: report.id,
+    });
+
+  } catch (err: unknown) {
+
+    if (retryReportId) {
+      await markReportFailed(
+        retryReportId
+      );
+    }
+
+    logger.error(
+      {
+        requestId: req.requestId,
+        err,
+      },
+      "Report retry failed"
+    );
+
+    return res.status(500).json({
+      error:
+        "Failed to retry report",
     });
   }
 }

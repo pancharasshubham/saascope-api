@@ -58,6 +58,8 @@ export const handleUpload = async (
 
       fileName: req.file.originalname,
 
+      filePath: req.file.path,
+
       processedCount: 0,
 
       skippedCount: 0,
@@ -67,8 +69,6 @@ export const handleUpload = async (
       vendors: [],
 
       totalSavings: 0,
-
-      filePath: req.file.path,
 
       status: "processing",
     });

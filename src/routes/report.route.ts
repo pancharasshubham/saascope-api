@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getReport, listReports } from "../controllers/report.controller";
+import { getReport, listReports, retryReport } from "../controllers/report.controller";
 import { authenticate } from "../middlewares/auth.middleware";
 
 const router = Router();
@@ -9,6 +9,12 @@ router.get(
   "/",
   authenticate,
   listReports
+);
+
+router.post(
+  "/:id/retry",
+  authenticate,
+  retryReport
 );
 
 
