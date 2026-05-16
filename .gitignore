@@ -1,4 +1,17 @@
-node_modules
+# dependencies
+node_modules/
+
+# environment variables
 .env
-dist
-tmp
+
+# build output
+dist/
+
+# logs
+*.log
+
+# uploaded csv storage
+storage/uploads/*
+
+# keep uploads folder structure
+!storage/uploads/.gitkeep
