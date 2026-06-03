@@ -1,18 +1,13 @@
 import { Request, Response } from "express";
 import fs from "fs";
 
-import { parseCSV } from "../services/csv.parser";
-import { runInsightEngine } from "../services/insight.engine";
-import { formatInsights } from "../services/result.formatter";
-
 import {
   saveReport,
-  updateReportResult,
   markReportFailed,
 } from "../services/report.service";
 
-import { evaluateDataQuality }
-from "../services/data-quality.service";
+import { processReport }
+from "../services/report-processor.service";
 
 import { logger } from "../utils/logger";
 
@@ -73,76 +68,13 @@ export const handleUpload = async (
       status: "processing",
     });
 
-    // ---------- Parse CSV ----------
-    const result = await parseCSV(
-      req.file.path
-    );
-
-    // ---------- Test error handling ----------
-    if (process.env.TEST_FAILURE === "true") {
-      throw new Error("TEST_FAILURE");
-    }
-
-    // ---------- Insight config ----------
-    const config = {
-
-      inactiveThresholdDays:
-        Number(
-          process.env
-            .INACTIVE_THRESHOLD_DAYS
-        ) || 90,
-
-      duplicateCostMinimum:
-        Number(
-          process.env
-            .DUPLICATE_COST_MINIMUM
-        ) || 1,
-    };
-
-    // ---------- Generate insights ----------
-    const rawInsights =
-      runInsightEngine(
-        result.valid,
-        config
-      );
-
-    // ---------- Format insights ----------
-    const formatted =
-      formatInsights(rawInsights);
-
-    // ---------- Evaluate dataset quality ----------
-    const dataQuality =
-      evaluateDataQuality({
-        processed:
-          result.valid.length,
-
-        skipped:
-          result.errors.length,
-
-        validRecords:
-          result.valid,
-      });
-
-    // ---------- Persist FINAL report result ----------
-    await updateReportResult({
+    const {
+      result,
+      formatted,
+      dataQuality,
+    } = await processReport({
       reportId,
-
-      processedCount:
-        result.valid.length,
-
-      skippedCount:
-        result.errors.length,
-
-      errors:
-        result.errors,
-
-      vendors:
-        formatted.vendors,
-
-      totalSavings:
-        formatted.totalSavings,
-
-      status: "completed",
+      filePath: req.file.path,
     });
 
     // ---------- Validation warnings ----------

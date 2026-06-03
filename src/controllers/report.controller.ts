@@ -1,10 +1,9 @@
 import { Request, Response } from "express";
-import { getReportById, getUserReports, markReportProcessing, markReportFailed, updateReportResult } from "../services/report.service";
+import { getReportById, getUserReports, markReportProcessing, markReportFailed } from "../services/report.service";
 import { logger } from "../utils/logger";
 import { mapReportSummary } from "../mappers/report.mapper";
-import { parseCSV } from "../services/csv.parser";
-import { runInsightEngine } from "../services/insight.engine";
-import { formatInsights } from "../services/result.formatter";
+import { processReport }
+from "../services/report-processor.service";
 
 export const getReport = async (req: Request, res: Response) => {
   try {
@@ -187,59 +186,9 @@ export async function retryReport(
       "Report retry started"
     );
 
-    // ---------- Parse persisted CSV ----------
-    const result =
-      await parseCSV(
-        report.file_path
-      );
-
-    // ---------- Insight config ----------
-    const config = {
-
-      inactiveThresholdDays:
-        Number(
-          process.env
-            .INACTIVE_THRESHOLD_DAYS
-        ) || 90,
-
-      duplicateCostMinimum:
-        Number(
-          process.env
-            .DUPLICATE_COST_MINIMUM
-        ) || 1,
-    };
-
-    // ---------- Generate insights ----------
-    const rawInsights =
-      runInsightEngine(
-        result.valid,
-        config
-      );
-
-    // ---------- Format insights ----------
-    const formatted =
-      formatInsights(rawInsights);
-
-    // ---------- Persist updated result ----------
-    await updateReportResult({
+    await processReport({
       reportId: report.id,
-
-      processedCount:
-        result.valid.length,
-
-      skippedCount:
-        result.errors.length,
-
-      errors:
-        result.errors,
-
-      vendors:
-        formatted.vendors,
-
-      totalSavings:
-        formatted.totalSavings,
-
-      status: "completed",
+      filePath: report.file_path,
     });
 
     logger.info(
