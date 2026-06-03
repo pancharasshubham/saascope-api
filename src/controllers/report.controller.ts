@@ -63,11 +63,11 @@ export async function listReports(
         req.query.minSavings
       );
 
-      if (Number.isNaN(parsed)) {
+      if (Number.isNaN(parsed) || parsed < 0) {
 
         return res.status(400).json({
           error:
-            "minSavings must be a valid number",
+            "minSavings must be greater than or equal to 0",
           });
         }
 
