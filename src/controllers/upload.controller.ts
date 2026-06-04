@@ -10,6 +10,7 @@ import { processReport }
 from "../services/report-processor.service";
 
 import { logger } from "../utils/logger";
+import { createReportEvent } from "../services/report-event.service";
 
 type MulterRequest = Request & {
   file?: Express.Multer.File;
@@ -67,6 +68,15 @@ export const handleUpload = async (
 
       status: "processing",
     });
+
+    await createReportEvent(
+      reportId,
+      "report_created"
+    );
+
+    console.log(
+    "EVENT CREATED: report_created"
+    );
 
     const {
       result,
@@ -182,7 +192,13 @@ export const handleUpload = async (
       await markReportFailed(
         reportId
       );
+
+      await createReportEvent(
+        reportId,
+        "processing_failed"
+      );
     }
+    
 
     // ---------- Invalid headers ----------
     if (

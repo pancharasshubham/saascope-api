@@ -4,6 +4,7 @@ import { logger } from "../utils/logger";
 import { mapReportSummary } from "../mappers/report.mapper";
 import { processReport }
 from "../services/report-processor.service";
+import { createReportEvent, getReportEvents as getReportEventsService, } from "../services/report-event.service";
 
 export const getReport = async (req: Request, res: Response) => {
   try {
@@ -186,6 +187,11 @@ export async function retryReport(
       "Report retry started"
     );
 
+    await createReportEvent(
+      report.id,
+      "retry_started"
+    );
+
     await processReport({
       reportId: report.id,
       filePath: report.file_path,
@@ -212,6 +218,11 @@ export async function retryReport(
       await markReportFailed(
         retryReportId
       );
+
+      await createReportEvent(
+        retryReportId,
+        "processing_failed"
+      );
     }
 
     logger.error(
@@ -225,6 +236,57 @@ export async function retryReport(
     return res.status(500).json({
       error:
         "Failed to retry report",
+    });
+  }
+}
+
+export async function getReportEvents(
+  req: Request,
+  res: Response
+) {
+  
+  const reportId =
+  Array.isArray(req.params.id)
+    ? req.params.id[0]
+    : req.params.id;
+
+  try {
+
+    const report =
+      await getReportById(
+        reportId,
+        req.user!.userId
+      );
+
+    if (!report) {
+
+      return res.status(404).json({
+        error: "Report not found",
+      });
+    }
+
+    const events =
+      await getReportEventsService(
+        reportId
+      );
+
+    return res.json({
+      events,
+    });
+
+  } catch (err: unknown) {
+
+    logger.error(
+      {
+        requestId: req.requestId,
+        err,
+      },
+      "Failed to retrieve report events"
+    );
+
+    return res.status(500).json({
+      error:
+        "Failed to retrieve report events",
     });
   }
 }

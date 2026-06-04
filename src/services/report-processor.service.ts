@@ -3,6 +3,7 @@ import { runInsightEngine } from "./insight.engine";
 import { formatInsights } from "./result.formatter";
 import { evaluateDataQuality } from "./data-quality.service";
 import { updateReportResult } from "./report.service";
+import { createReportEvent } from "./report-event.service";
 
 type ProcessReportInput = {
   reportId: string;
@@ -12,6 +13,15 @@ type ProcessReportInput = {
 export async function processReport(
   input: ProcessReportInput
 ) {
+
+  await createReportEvent(
+    input.reportId,
+    "processing_started"
+  );
+
+  console.log(
+  "EVENT CREATED: processing_started"
+  );
 
   const result = await parseCSV(
     input.filePath
@@ -75,6 +85,15 @@ export async function processReport(
 
     status: "completed",
   });
+
+  await createReportEvent(
+    input.reportId,
+    "processing_completed"
+  );
+
+  console.log(
+  "EVENT CREATED: processing_completed"
+  );
 
   return {
     result,
