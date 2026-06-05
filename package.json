@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
+    "@types/cors": "^2.8.19",
     "@types/csv-parse": "^1.1.12",
     "@types/express": "^5.0.6",
     "@types/express-rate-limit": "^5.1.3",

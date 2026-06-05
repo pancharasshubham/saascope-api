@@ -1,5 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
+import cors from "cors";
 
 dotenv.config();
 
@@ -41,6 +42,14 @@ app.use(
 
 // json parser
 app.use(express.json());
+
+// CORS configuration
+app.use(
+  cors({
+    origin: "http://localhost:3001",
+    credentials: true,
+  })
+);
 
 // ---------- Health Check ----------
 
