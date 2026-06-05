@@ -2,32 +2,37 @@
 
 ## Problem
 
-API endpoints lacked proper authentication and authorization controls, allowing unauthorized access to sensitive report data.
+Initially any user could potentially access report endpoints without a mechanism to identify ownership.
+
+This became a problem once reports were persisted in PostgreSQL because report data needed to belong to a specific user.
 
 ## Solution
 
-Implemented JWT-based authentication with token-based access control.
+Implemented JWT-based authentication.
 
-Added authentication middleware for:
+Added:
 
-* JWT token validation
-* User identity verification
-* Role-based access control
-* Token refresh mechanism
+* User registration
+* User login
+* JWT generation
+* Authentication middleware
+* User context attached to requests
+
+This allowed report ownership enforcement throughout the API.
 
 ## Alternative Considered
 
-Basic API key authentication.
+Building report functionality before authentication.
 
-Rejected because it provided insufficient security for sensitive SaaS data.
+Rejected because report ownership would require significant refactoring later.
 
 ## Bugs Encountered
 
-* Token expiration not properly handled
-* Refresh token logic had race conditions
-* Missing user context in request objects
-* Authorization checks bypassed in some routes
+* JWT secret typing issues in TypeScript
+* req.user typing problems in middleware
+* Route handlers failing because user context was unavailable
+* Authentication order mistakes causing protected routes to fail
 
 ## Result
 
-API now enforces proper authentication with secure token-based access control.
+Every report is now associated with a specific user and protected endpoints require valid authentication.
