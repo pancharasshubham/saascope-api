@@ -121,6 +121,13 @@ app.get(
   }
 );
 
+import dashboardRoute from "./routes/dashboard.route";
+
+app.use(
+  "/dashboard",
+  dashboardRoute
+);
+
 // ---------- Global Error Handler ----------
 
 app.use(errorHandler);
