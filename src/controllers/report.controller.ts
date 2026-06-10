@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { getReportById, getUserReports, markReportProcessing, markReportFailed } from "../services/report.service";
+import { getReportById, getUserReports, markReportProcessing, markReportFailed, deleteReportById } from "../services/report.service";
 import { logger } from "../utils/logger";
 import { mapReportSummary } from "../mappers/report.mapper";
 import { processReport }
@@ -287,6 +287,53 @@ export async function getReportEvents(
     return res.status(500).json({
       error:
         "Failed to retrieve report events",
+    });
+  }
+}
+
+export async function deleteReport(
+  req: Request,
+  res: Response
+) {
+  const reportId =
+  Array.isArray(req.params.id)
+    ? req.params.id[0]
+    : req.params.id;
+  
+  try {
+
+    const deleted =
+      await deleteReportById(
+        reportId,
+        req.user!.userId
+      );
+
+    if (!deleted) {
+
+      return res.status(404).json({
+        error:
+          "Report not found",
+      });
+    }
+
+    return res
+      .status(204)
+      .send();
+
+  } catch (err) {
+
+    logger.error(
+      {
+        requestId:
+          req.requestId,
+        err,
+      },
+      "Failed to delete report"
+    );
+
+    return res.status(500).json({
+      error:
+        "Failed to delete report",
     });
   }
 }

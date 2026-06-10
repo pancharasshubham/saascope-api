@@ -30,4 +30,12 @@ router.get(
     authenticate, 
     getReport);
 
+// ---------- Delete report ----------
+import { deleteReport } from "../controllers/report.controller";
+router.delete(
+  "/:id",
+  authenticate,
+  deleteReport
+);
+
 export default router;

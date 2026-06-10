@@ -1,4 +1,5 @@
 import pool from "../config/db";
+import fs from "fs";
 
 type SaveReportInput = {
   userId: string;
@@ -283,4 +284,49 @@ export async function markReportProcessing(
     `,
     [reportId]
   );
+}
+
+export async function deleteReportById(
+  reportId: string,
+  userId: string
+) {
+
+  const report =
+    await getReportById(
+      reportId,
+      userId
+    );
+
+  if (!report) {
+    return false;
+  }
+
+  if (
+    report.file_path &&
+    fs.existsSync(
+      report.file_path
+    )
+  ) {
+    fs.unlinkSync(
+      report.file_path
+    );
+  }
+
+  await pool.query(
+    `
+    DELETE FROM report_events
+    WHERE report_id = $1
+    `,
+    [reportId]
+  );
+
+  await pool.query(
+    `
+    DELETE FROM reports
+    WHERE id = $1
+    `,
+    [reportId]
+  );
+
+  return true;
 }
