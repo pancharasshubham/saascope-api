@@ -117,6 +117,11 @@ app.get("/test-db", async (req, res) => {
   }
 });
 
+// TEMP TEST ROUTE
+app.get("/ping", (req, res) => {
+  res.send("pong");
+});
+
 // ---------- Routes ----------
 
 app.use("/upload", uploadRoute);
