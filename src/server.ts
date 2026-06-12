@@ -18,6 +18,8 @@ import reportRoute from "./routes/report.route";
 
 import pool from "./config/db";
 
+console.log("SERVER FILE LOADED");
+
 const app = express();
 
 const PORT = process.env.PORT || 3000;
@@ -152,6 +154,7 @@ app.use(
 app.use(errorHandler);
 
 // ---------- Server Startup ----------
+console.log("ABOUT TO START SERVER");
 
 app.listen(PORT, () => {
 
