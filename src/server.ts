@@ -153,8 +153,17 @@ app.use(
 
 app.use(errorHandler);
 
+console.log(
+  "PORT ENV:",
+  process.env.PORT
+);
+
+console.log(
+  "FRONTEND_URL:",
+  process.env.FRONTEND_URL
+);
+
 // ---------- Server Startup ----------
-console.log("ABOUT TO START SERVER");
 
 app.listen(PORT, () => {
 
