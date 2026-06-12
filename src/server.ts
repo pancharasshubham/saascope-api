@@ -165,7 +165,10 @@ console.log(
 
 // ---------- Server Startup ----------
 
-app.listen(PORT, () => {
+app.listen(
+  Number(PORT),
+  "0.0.0.0",
+  () => {
 
   logger.info(
     {
