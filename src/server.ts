@@ -56,9 +56,14 @@ if (process.env.FRONTEND_URL) {
   );
 }
 
+console.log(
+  "ALLOWED ORIGINS:",
+  allowedOrigins
+);
+
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: true,
     credentials: true,
   })
 );
