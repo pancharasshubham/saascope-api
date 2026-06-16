@@ -17,4 +17,16 @@ console.log(
   )
 );
 
+import dns from "dns";
+
+dns.lookup(
+  "aws-1-ap-south-1.pooler.supabase.com",
+  { all: true },
+  (err, addresses) => {
+    console.log("DNS TEST");
+    console.log(err);
+    console.log(addresses);
+  }
+);
+
 export default pool;
