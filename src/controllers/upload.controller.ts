@@ -40,6 +40,12 @@ export const handleUpload = async (
       });
     }
 
+    if (req.file.size === 0) {
+      return res.status(400).json({
+        error: "CSV file is empty",
+      });
+    }
+
     logger.info(
       {
         requestId: req.requestId,
@@ -199,6 +205,33 @@ export const handleUpload = async (
       );
     }
     
+
+    // ---------- Empty CSV ----------
+    if (
+      typeof err === "object" &&
+      err !== null &&
+      "type" in err &&
+      err.type === "EMPTY_CSV"
+    ) {
+
+      return res.status(400).json({
+        error: "CSV file is empty",
+      });
+    }
+
+    // ---------- No valid records ----------
+    if (
+      typeof err === "object" &&
+      err !== null &&
+      "type" in err &&
+      err.type === "NO_VALID_RECORDS"
+    ) {
+
+      return res.status(400).json({
+        error:
+          "CSV contains no valid records",
+      });
+    }
 
     // ---------- Invalid headers ----------
     if (

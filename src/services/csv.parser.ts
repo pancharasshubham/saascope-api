@@ -24,6 +24,7 @@ export async function parseCSV(
 
     let rowNumber = 1;
     let headersValidated = false;
+    let recordsProcessed = 0;
 
     const parser = parse({
       columns: true,
@@ -35,6 +36,7 @@ export async function parseCSV(
       let record;
 
       while ((record = parser.read()) !== null) {
+        recordsProcessed++;
         rowNumber++;
 
         // ---------- Header Validation ----------
@@ -143,6 +145,23 @@ export async function parseCSV(
     });
 
     parser.on("end", () => {
+      if (recordsProcessed === 0) {
+        reject({
+          type: "EMPTY_CSV",
+        });
+        return;
+      }
+
+      if (
+        valid.length === 0 &&
+        errors.length > 0
+      ) {
+        reject({
+          type: "NO_VALID_RECORDS",
+        });
+        return;
+      }
+
       resolve({
         valid,
         errors,
