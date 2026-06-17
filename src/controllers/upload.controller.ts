@@ -36,6 +36,7 @@ export const handleUpload = async (
       );
 
       return res.status(400).json({
+        code: "NO_FILE_UPLOADED",
         error: "No file uploaded",
       });
     }
@@ -215,6 +216,7 @@ export const handleUpload = async (
     ) {
 
       return res.status(400).json({
+        code: "EMPTY_CSV",
         error: "CSV file is empty",
       });
     }
@@ -228,6 +230,7 @@ export const handleUpload = async (
     ) {
 
       return res.status(400).json({
+        code: "NO_VALID_RECORDS",
         error:
           "CSV contains no valid records",
       });
@@ -250,11 +253,9 @@ export const handleUpload = async (
       );
 
       return res.status(400).json({
-        error:
-          "Invalid CSV headers",
-
-        missing:
-          (err as any).missing,
+        code: "INVALID_HEADERS",
+        error: "Invalid CSV headers",
+        missing: (err as any).missing,
       });
     }
 
@@ -268,6 +269,7 @@ export const handleUpload = async (
     );
 
     return res.status(500).json({
+      code: "UPLOAD_PROCESSING_FAILED",
       error:
         "Failed to process CSV",
 
